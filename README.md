@@ -11,6 +11,8 @@
 
 **Install dependencies**
 
+1. clone this link in your local (https://github.com/bala2207022/face.git)
+
 1. Create and activate a virtual environment (zsh):
 
 ```
