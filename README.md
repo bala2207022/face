@@ -49,7 +49,7 @@ pip install -r face/requirements.txt
 1. Run bootstrap to create folders and JSON placeholders:
 
 ```
-python3 src/bootstrap.py
+python3 face/src/bootstrap.py
 ```
 
 This creates `models/classes_meta.json`, `models/students_meta.json`, `models/centroids.json` and the directory `excel_reports/` if they don't exist.
@@ -57,7 +57,7 @@ This creates `models/classes_meta.json`, `models/students_meta.json`, `models/ce
 2. (Optional) If you already have face embeddings (`embeddings.npz`) and want to compute centroids:
 
 ```
-python3 src/train_centroid.py
+python3 face/src/train_centroid.py
 ```
 
 After running this, `models/centroids.json` will contain centroids used by the recognition scripts.
@@ -65,7 +65,7 @@ After running this, `models/centroids.json` will contain centroids used by the r
 3. Start the web dashboard (professor web UI):
 
 ```
-python3 src/dashboard.py
+python3 face/src/dashboard.py
 ```
 
 - By default the dashboard runs on `http://127.0.0.1:50135` (check console output for exact URL).
@@ -74,7 +74,7 @@ python3 src/dashboard.py
 4. Or run the CLI realtime verifier (camera-based):
 
 ```
-python3 src/verify_realtime.py
+python3 face/src/verify_realtime.py
 ```
 
 - First recognized face is treated as the professor (to start the class). Then students can check in.
