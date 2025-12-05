@@ -11,7 +11,18 @@
 
 **Install dependencies**
 
-1. clone this link in your local (https://github.com/bala2207022/face.git)
+# ✅ How to Clone Your GitHub Project into Your Local System (Mac)
+
+Follow these steps exactly to clone and set up your project locally.
+
+---
+
+## 🔹 Step 1 — Open Terminal
+
+Press:
+
+git clone https://github.com/bala2207022/face.git
+
 
 1. Create and activate a virtual environment (zsh):
 
