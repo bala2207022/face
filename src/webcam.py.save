@@ -1,0 +1,24 @@
+import cv2
+
+# Use AVFoundation backend on Mac (helps MacBook webcam)
+cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+
+if not cap.isOpened():
+    print(" Could not open webcam")
+    exit()
+
+print(" Webcam opened successfully! Press 'q' to quit.")
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        print("Failed to grab frame")
+        break
+
+    cv2.imshow("Mac Webcam", frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+x
