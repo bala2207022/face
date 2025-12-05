@@ -34,7 +34,7 @@ source .venv/bin/activate
 2. Install packages:
 
 ```
-pip install -r requirements.txt
+pip install -r face/requirements.txt
 ```
 
 **Execution Order (recommended)**
