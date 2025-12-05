@@ -1,7 +1,9 @@
-opencv-python
-insightface
-onnxruntime
-numpy
-openpyxl
-numpy
-openpyxl
+opencv-python>=4.6.0
+insightface>=0.8.5
+onnxruntime>=1.16.0
+onnx>=1.14.0
+numpy>=1.22.0
+openpyxl>=3.0.10
+flask>=2.0.0
+pillow>=9.0.0
+scipy>=1.8.0
