@@ -14,7 +14,9 @@ Run: python3 src/bootstrap.py
 """
 
 import os
+import sys
 import json
+import platform
 from pathlib import Path
 from datetime import datetime
 
@@ -43,9 +45,9 @@ def write_json(path: str, data):
 def ensure_file(path: str, default_data):
     if not os.path.exists(path):
         write_json(path, default_data)
-        print(f"Created: {path}")
+        print(f"✓ Created: {path}")
     else:
-        print(f"OK: {path} (exists)")
+        print(f"✓ OK: {path} (exists)")
 
 
 def inspect_and_recommend():
@@ -61,22 +63,41 @@ def inspect_and_recommend():
         except Exception:
             centroids_ok = False
 
+    system = platform.system()
+    if system == "Windows":
+        py_cmd = "python"
+    else:  # macOS, Linux
+        py_cmd = "python3"
+
+    print("\n" + "="*70)
+    print("SETUP COMPLETE!")
+    print("="*70)
+
     if centroids_ok:
-        print("\nRecommendation: `models/centroids.json` contains centroids.")
-        print("You can run: python3 src/verify_realtime.py  # start realtime verification / attendance")
+        print("\n✓ Face recognition model is ready (centroids found).")
+        print("\nNext step: Start the web dashboard OR camera mode:")
+        print(f"\n  Web Dashboard:\n    {py_cmd} src/index.py")
+        print("    Then open: http://127.0.0.1:50135")
+        print(f"\n  OR Camera Mode:\n    {py_cmd} src/verify_realtime.py")
         return
 
     # centroids missing or empty
     if os.path.exists(EMB_FILE):
-        print("\nRecommendation: `models/embeddings.npz` exists but centroids are missing.")
-        print("Run: python3 src/train_centroid.py  # to build centroids from embeddings")
+        print("\n⚠ Face embeddings found, but centroids not yet built.")
+        print(f"\nNext step: Build centroids:\n  {py_cmd} src/train_centroid.py")
+        print("\nThen: Start web dashboard or camera mode (see instructions above).")
         return
 
     # neither centroids nor embeddings exist
-    print("\nRecommendation: No centroids or embeddings found.")
-    print("First, run: python3 src/verify_realtime.py  # to capture frames and produce student/professor images")
-    print("Then run any build_embeddings script (if present) to create `models/embeddings.npz`,")
-    print("and finally: python3 src/train_centroid.py")
+    print("\n⚠ No face recognition model found (no embeddings or centroids).")
+    print("\nNext steps:")
+    print(f"  1. Collect face images: {py_cmd} src/verify_realtime.py")
+    print("     (This captures faces and creates embeddings)")
+    print(f"  2. Build centroids:     {py_cmd} src/train_centroid.py")
+    print(f"  3. Start dashboard:     {py_cmd} src/index.py")
+    print("\nFor web dashboard without face recognition:")
+    print(f"  {py_cmd} src/index.py")
+    print("  (You can manually register students and mark attendance)")
 
 
 if __name__ == '__main__':

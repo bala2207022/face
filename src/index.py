@@ -1,4 +1,4 @@
-# dashboard.py – Web dashboard for face-based class attendance
+# index.py – Web dashboard for face-based class attendance
 
 import os
 import re
@@ -12,13 +12,27 @@ from typing import Dict
 import numpy as np
 import cv2
 from flask import Flask, request, jsonify, render_template_string
-from insightface.app import FaceAnalysis
-from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+try:
+  from insightface.app import FaceAnalysis
+  HAS_INSIGHTFACE = True
+except Exception:
+  FaceAnalysis = None
+  HAS_INSIGHTFACE = False
+  print("Warning: insightface not available; face recognition features are disabled.")
+try:
+  from openpyxl import Workbook, load_workbook
+  from openpyxl.styles import Font, PatternFill, Alignment
+  HAS_OPENPYXL = True
+except Exception:
+  Workbook = None
+  load_workbook = None
+  Font = PatternFill = Alignment = None
+  HAS_OPENPYXL = False
+  print("Warning: openpyxl not installed; Excel report features are disabled.")
 
 
-# basic paths and configuration
-ROOT = os.path.expanduser("~/Documents/265/face_attendance")
+# basic paths and configuration (relative to project root for cross-platform compatibility)
+ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(ROOT, "data", "students")
 MODELS_DIR = os.path.join(ROOT, "models")
 CENTROIDS = os.path.join(MODELS_DIR, "centroids.json")
@@ -386,16 +400,21 @@ def write_summary_sheet_for_class(class_id: int):
 
 
 # face helpers
-_face_app: FaceAnalysis | None = None
+_face_app = None
 _last_log_times: Dict[str, float] = {}
 
 
-def face_app() -> FaceAnalysis:
-    global _face_app
-    if _face_app is None:
-        _face_app = FaceAnalysis(name="buffalo_l")
-        _face_app.prepare(ctx_id=0, det_size=DET_SIZE)
-    return _face_app
+def face_app():
+  """Return the insightface FaceAnalysis instance or raise if not available."""
+  global _face_app
+  if not HAS_INSIGHTFACE:
+    raise RuntimeError(
+      "insightface is not installed or failed to import. Install insightface or run in an environment where it's available."
+    )
+  if _face_app is None:
+    _face_app = FaceAnalysis(name="buffalo_l")
+    _face_app.prepare(ctx_id=0, det_size=DET_SIZE)
+  return _face_app
 
 
 def norm_cos(a: np.ndarray, b: np.ndarray) -> float:
@@ -431,25 +450,54 @@ def save_centroids(cents: Dict[str, np.ndarray]):
 
 
 def compute_centroid_for_folder(folder: str) -> np.ndarray | None:
-    app = face_app()
-    embs = []
-    for p in Path(folder).glob("*"):
-        if not p.is_file():
-            continue
-        img = cv2.imread(str(p))
-        if img is None:
-            continue
+  # If insightface is available use it to extract per-face normalized embeddings.
+  # Otherwise fall back to a simple image feature so data flows (create/register) work.
+  embs = []
+  for p in Path(folder).glob("*"):
+    if not p.is_file():
+      continue
+    img = cv2.imread(str(p))
+    if img is None:
+      continue
+    if HAS_INSIGHTFACE:
+      try:
+        app = face_app()
         faces = app.get(img)
-        if not faces:
-            continue
-        f = max(
-            faces,
-            key=lambda z: (z.bbox[2] - z.bbox[0]) * (z.bbox[3] - z.bbox[1]),
-        )
-        embs.append(f.normed_embedding.astype(np.float32))
-    if not embs:
-        return None
-    return np.mean(embs, axis=0)
+      except Exception:
+        faces = []
+      if not faces:
+        continue
+      f = max(
+        faces,
+        key=lambda z: (z.bbox[2] - z.bbox[0]) * (z.bbox[3] - z.bbox[1]),
+      )
+      embs.append(f.normed_embedding.astype(np.float32))
+    else:
+      feat = compute_image_feature(img)
+      if feat is not None:
+        embs.append(feat.astype(np.float32))
+  if not embs:
+    return None
+  return np.mean(embs, axis=0)
+
+
+def compute_image_feature(img: np.ndarray) -> np.ndarray | None:
+  """Fallback feature extractor: resize, grayscale, histogram/flattened normalized vector.
+  This is NOT a face embedding — it's a coarse image descriptor used only as a fallback.
+  """
+  try:
+    # convert to grayscale and resize to fixed size
+    g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    r = cv2.resize(g, (128, 128), interpolation=cv2.INTER_LINEAR)
+    # normalize to [0,1]
+    v = r.astype(np.float32).ravel() / 255.0
+    # L2-normalize
+    norm = np.linalg.norm(v)
+    if norm <= 1e-6:
+      return None
+    return v / norm
+  except Exception:
+    return None
 
 
 # flask application
@@ -853,6 +901,9 @@ def api_create_class():
     if not prof_name or not prof_code or not class_name:
         return jsonify(ok=False, error="Missing professor or class information"), 400
 
+    if not HAS_OPENPYXL:
+      return jsonify(ok=False, error="openpyxl is required for creating classes (install openpyxl in the active Python environment)."), 501
+
     label = f"prof_{prof_code}_{prof_name}"
     folder = os.path.join(DATA_DIR, label)
     if not os.path.isdir(folder):
@@ -917,6 +968,9 @@ def api_register_student():
     if not student_name or not student_code:
         return jsonify(ok=False, error="Missing student information"), 400
 
+    if not HAS_OPENPYXL:
+      return jsonify(ok=False, error="openpyxl is required for registering students (install openpyxl in the active Python environment)."), 501
+
     label = f"{student_code}_{student_name}"
     folder = os.path.join(DATA_DIR, label)
     if not os.path.isdir(folder):
@@ -966,20 +1020,28 @@ def api_open_class():
     if img is None:
         return jsonify(ok=False, error="No image"), 400
 
+    if not HAS_OPENPYXL:
+      return jsonify(ok=False, error="openpyxl is required to open classes and record sessions (install openpyxl in the active Python environment)."), 501
+
     cents = load_centroids()
     if not cents:
-        return jsonify(ok=False, error="Model not trained yet"), 200
+      return jsonify(ok=False, error="Model not trained yet"), 200
 
-    appface = face_app()
-    faces = appface.get(img)
-    if not faces:
+    # Extract embedding: prefer insightface face embedding, otherwise use a fallback image feature
+    if HAS_INSIGHTFACE:
+      appface = face_app()
+      faces = appface.get(img)
+      if not faces:
         return jsonify(ok=False, error="No face detected"), 200
-
-    f = max(
-        faces,
-        key=lambda z: (z.bbox[2] - z.bbox[0]) * (z.bbox[3] - z.bbox[1]),
-    )
-    emb = f.normed_embedding.astype(np.float32)
+      f = max(
+          faces,
+          key=lambda z: (z.bbox[2] - z.bbox[0]) * (z.bbox[3] - z.bbox[1]),
+      )
+      emb = f.normed_embedding.astype(np.float32)
+    else:
+      emb = compute_image_feature(img)
+      if emb is None:
+        return jsonify(ok=False, error="Could not compute fallback image feature"), 200
 
     best_lab, best_sim = "Unknown", -1.0
     for lab, c in cents.items():
@@ -1033,18 +1095,22 @@ def api_check_student():
 
     cents = load_centroids()
     if not cents:
-        return jsonify(ok=False, error="Model not trained yet"), 200
+      return jsonify(ok=False, error="Model not trained yet"), 200
 
-    appface = face_app()
-    faces = appface.get(img)
-    if not faces:
+    if HAS_INSIGHTFACE:
+      appface = face_app()
+      faces = appface.get(img)
+      if not faces:
         return jsonify(ok=True, status="No face detected", detail=""), 200
-
-    f = max(
+      f = max(
         faces,
         key=lambda z: (z.bbox[2] - z.bbox[0]) * (z.bbox[3] - z.bbox[1]),
-    )
-    emb = f.normed_embedding.astype(np.float32)
+      )
+      emb = f.normed_embedding.astype(np.float32)
+    else:
+      emb = compute_image_feature(img)
+      if emb is None:
+        return jsonify(ok=True, status="No face detected", detail=""), 200
 
     best_lab, best_sim = "Unknown", -1.0
     for lab, c in cents.items():

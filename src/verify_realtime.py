@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import platform
 from datetime import datetime
 from pathlib import Path
 
@@ -41,20 +42,47 @@ def cos_sim(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def open_cam():
-    """Try a few indices/backends so it works on most systems."""
-    tries = [
-        (0, cv2.CAP_AVFOUNDATION),
-        (0, cv2.CAP_QT),
-        (0, cv2.CAP_ANY),
-        (1, cv2.CAP_ANY),
-    ]
-    for idx, backend in tries:
-        cap = cv2.VideoCapture(idx, backend)
-        if cap.isOpened():
-            print(f"Opened camera index={idx}, backend={backend}")
-            return cap
-        cap.release()
-    print("Could not open any camera. Check permissions / close other apps.")
+    """Try platform-specific camera backends for maximum compatibility."""
+    import platform
+    system = platform.system()
+    
+    # Try platform-appropriate backends first
+    if system == "Darwin":  # macOS
+        backends_to_try = [
+            (0, cv2.CAP_AVFOUNDATION),
+            (0, cv2.CAP_QT),
+            (0, cv2.CAP_ANY),
+        ]
+    elif system == "Windows":  # Windows
+        backends_to_try = [
+            (0, cv2.CAP_DSHOW),
+            (0, cv2.CAP_MSMF),
+            (0, cv2.CAP_ANY),
+        ]
+    else:  # Linux and others
+        backends_to_try = [
+            (0, cv2.CAP_V4L2),
+            (0, cv2.CAP_ANY),
+        ]
+    
+    # Also try alternative indices
+    for idx in [0, 1, 2]:
+        backends_to_try.append((idx, cv2.CAP_ANY))
+    
+    for idx, backend in backends_to_try:
+        try:
+            cap = cv2.VideoCapture(idx, backend)
+            if cap.isOpened():
+                print(f"✓ Opened camera: index={idx}, backend={backend}")
+                return cap
+            cap.release()
+        except Exception as e:
+            pass
+    
+    print("✗ Could not open any camera.")
+    print("  - Check if camera is connected")
+    print("  - Close other apps using the camera")
+    print("  - Check camera permissions (macOS/Linux: Settings → Privacy & Security → Camera)")
     return None
 
 
