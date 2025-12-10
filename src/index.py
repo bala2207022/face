@@ -1,5 +1,4 @@
 # index.py – Web dashboard for face-based class attendance
-
 import os
 import re
 import json
@@ -8,7 +7,6 @@ import base64
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
-
 import numpy as np
 import cv2
 from flask import Flask, request, jsonify, render_template_string
@@ -63,27 +61,21 @@ def load_json_file(path, default):
     except Exception:
       return default
 
-
 def save_json_file(path, data):
   with open(path, "w") as f:
     json.dump(data, f, indent=2, default=str)
 
-
 def load_classes_meta():
   return load_json_file(CLASSES_META, {"next_id": 1, "classes": {}})
-
 
 def save_classes_meta(meta):
   save_json_file(CLASSES_META, meta)
 
-
 def load_students_meta():
   return load_json_file(STUDENTS_META, {"next_id": 1, "students": {}})
 
-
 def save_students_meta(meta):
   save_json_file(STUDENTS_META, meta)
-
 
 def _class_filepath_for_id(class_id: int) -> str | None:
   meta = load_classes_meta()
@@ -92,14 +84,12 @@ def _class_filepath_for_id(class_id: int) -> str | None:
     return None
   return cls.get("file")
 
-
 def ensure_reports_setup():
   # ensure meta files exist
   m = load_classes_meta()
   save_classes_meta(m)
   s = load_students_meta()
   save_students_meta(s)
-
 
 # student helpers (Excel-backed)
 def upsert_student(face_label: str, student_name: str, student_code: str) -> int:
@@ -116,14 +106,12 @@ def upsert_student(face_label: str, student_name: str, student_code: str) -> int
   save_students_meta(meta)
   return sid
 
-
 def get_student_id_by_face_label(face_label: str) -> int | None:
   meta = load_students_meta()
   s = meta.get("students", {}).get(face_label)
   if s:
     return s.get("id")
   return None
-
 
 # professor and class helpers
 def create_class(face_label: str, professor_name: str, professor_code: str, class_name: str) -> int:
@@ -179,7 +167,6 @@ def create_class(face_label: str, professor_name: str, professor_code: str, clas
   save_classes_meta(meta)
   return cid
 
-
 def get_latest_class_for_professor(face_label: str):
   meta = load_classes_meta()
   best = None
@@ -196,7 +183,6 @@ def get_latest_class_for_professor(face_label: str):
   if best is None:
     return None, None
   return int(best), meta["classes"][best].get("class_name")
-
 
 def mark_student_attendance(face_label: str, class_id: int):
   # Load class metadata and filepath
@@ -272,7 +258,6 @@ def mark_student_attendance(face_label: str, class_id: int):
   student_code = parse_label(face_label)[0]
   return class_name, student_name, student_code, True
 
-
 def get_class_summary(class_id: int):
   filepath = _class_filepath_for_id(class_id)
   if not filepath or not os.path.exists(filepath):
@@ -299,7 +284,6 @@ def get_class_summary(class_id: int):
   total_present = len(present_ids)
   total_absent = max(0, total_students - total_present)
   return total_students, total_present, total_absent, present_list
-
 
 def write_summary_sheet_for_class(class_id: int):
   """Compute per-student totals across all sessions and write a clear Summary sheet.
@@ -398,11 +382,9 @@ def write_summary_sheet_for_class(class_id: int):
   wb.save(filepath)
   return True
 
-
 # face helpers
 _face_app = None
 _last_log_times: Dict[str, float] = {}
-
 
 def face_app():
   """Return the insightface FaceAnalysis instance or raise if not available."""
@@ -416,16 +398,13 @@ def face_app():
     _face_app.prepare(ctx_id=0, det_size=DET_SIZE)
   return _face_app
 
-
 def norm_cos(a: np.ndarray, b: np.ndarray) -> float:
     a = a / np.linalg.norm(a)
     b = b / np.linalg.norm(b)
     return float(np.dot(a, b))
 
-
 def parse_label(label: str):
     return label.split("_", 1) if "_" in label else (label, label)
-
 
 def data_url_to_bgr(data_url: str) -> np.ndarray | None:
     m = re.match(r"^data:image/(png|jpeg);base64,(.+)$", data_url or "")
@@ -435,7 +414,6 @@ def data_url_to_bgr(data_url: str) -> np.ndarray | None:
     nparr = np.frombuffer(raw, np.uint8)
     return cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-
 def load_centroids() -> Dict[str, np.ndarray]:
     if not os.path.exists(CENTROIDS):
         return {}
@@ -443,11 +421,9 @@ def load_centroids() -> Dict[str, np.ndarray]:
         data = json.load(f).get("centroids", {})
     return {k: np.array(v, dtype=np.float32) for k, v in data.items()}
 
-
 def save_centroids(cents: Dict[str, np.ndarray]):
     with open(CENTROIDS, "w") as f:
         json.dump({"centroids": {k: v.tolist() for k, v in cents.items()}}, f)
-
 
 def compute_centroid_for_folder(folder: str) -> np.ndarray | None:
   # If insightface is available use it to extract per-face normalized embeddings.
@@ -480,7 +456,6 @@ def compute_centroid_for_folder(folder: str) -> np.ndarray | None:
     return None
   return np.mean(embs, axis=0)
 
-
 def compute_image_feature(img: np.ndarray) -> np.ndarray | None:
   """Fallback feature extractor: resize, grayscale, histogram/flattened normalized vector.
   This is NOT a face embedding — it's a coarse image descriptor used only as a fallback.
@@ -498,7 +473,6 @@ def compute_image_feature(img: np.ndarray) -> np.ndarray | None:
     return v / norm
   except Exception:
     return None
-
 
 # flask application
 app = Flask(__name__)
