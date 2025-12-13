@@ -84,6 +84,29 @@ python3 src/verify_realtime.py
 ```
 
 
+## 🎯 One-line commands (recommended)
+
+These one-liners are the simplest way for a non-technical user to get started. Pick the line for your OS and whether you want pip or conda.
+
+- macOS / Linux (pip-based, interactive):
+```bash
+bash scripts/setup.sh && bash scripts/run_dashboard.sh
+```
+
+- macOS / Linux (conda-based — recommended when pip fails for insightface):
+```bash
+bash scripts/install_miniforge.sh && conda activate face_env && python src/bootstrap.py && bash scripts/run_dashboard.sh
+```
+
+- Windows (PowerShell):
+```powershell
+.\scripts\setup.bat
+.venv\Scripts\Activate.ps1
+python src\bootstrap.py
+.\scripts\run_dashboard.bat
+```
+
+If you prefer camera mode, replace `run_dashboard` with `run_camera` in the commands above.
 ## 🚀 STEP-BY-STEP SETUP (Choose Your Platform)
 
 ### **WINDOWS**
