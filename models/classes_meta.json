@@ -1,0 +1,23 @@
+{
+  "next_id": 3,
+  "classes": {
+    "1": {
+      "file": "/Users/balakrishna/Documents/face_attendance/excel_reports/class_1_ah.xlsx",
+      "class_name": "ah",
+      "professor_label": "prof_adsfg_bala",
+      "professor_name": "bala",
+      "professor_code": "adsfg",
+      "start_time": "2025-12-09T14:41:21.906160",
+      "session_count": 1
+    },
+    "2": {
+      "file": "/Users/balakrishna/Documents/face_attendance/excel_reports/class_2_e3r4t5y.xlsx",
+      "class_name": "e3r4t5y",
+      "professor_label": "prof_wqrertr_bala",
+      "professor_name": "bala",
+      "professor_code": "wqrertr",
+      "start_time": "2025-12-09T18:24:07.760288",
+      "session_count": 1
+    }
+  }
+}
