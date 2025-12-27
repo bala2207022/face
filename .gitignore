@@ -1,1 +1,16 @@
 .venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.log
+.env
+.vscode/
+.idea/
+*.sqlite3
+/.pytest_cache/
+/.mypy_cache/
+/.ipynb_checkpoints/
+
+# Optional large files you may want to keep out of git
+# models/*.npz
+# excel_reports/*.xlsx

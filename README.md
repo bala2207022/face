@@ -72,6 +72,26 @@ python3 src/bootstrap.py   # or `python` on Windows
 python3 src/train_centroid.py
 ```
 
+## 🟣 Streamlit Camera-Only UI (recommended)
+
+This repository now includes a Streamlit UI (`streamlit_app.py`) which enforces camera-only image capture for both professor and student registration. Uploading images from files is intentionally disabled to improve data integrity and reduce spoofing risk.
+
+Key points:
+- Registration requires 15–17 camera captures per person (configurable in the app).
+- The app performs basic embedding consistency checks and will reject duplicate/identical or highly inconsistent captures.
+- Start the Streamlit UI (recommended for easy use):
+
+```bash
+# from project root
+. .venv/bin/activate        # macOS / Linux
+
+streamlit run streamlit_app.py
+```
+
+Open the Streamlit URL shown in the terminal (usually http://localhost:8501).
+
+If you prefer the older Flask dashboard the repo still contains `src/index.py`, but the Streamlit UI is recommended.
+
 6. Start the web dashboard (easy UI):
 ```bash
 python3 src/index.py
